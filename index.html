@@ -1,194 +1,480 @@
 <!DOCTYPE html>
+
 <html lang="vi">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP8266 MQTT Music Player Dashboard</title>
-    <!-- Nhúng thư viện MQTT.js -->
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            text-align: center;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 450px;
-            margin: 30px auto;
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        h2 { margin-bottom: 5px; color: #2c3e50; }
-        .broker-status {
-            font-size: 14px;
-            margin-bottom: 20px;
-            font-weight: bold;
-            color: #e67e22;
-        }
-        .status-box {
-            background: #222;
-            color: #00ffcc;
-            padding: 12px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 16px;
-            margin-bottom: 20px;
-            min-height: 24px;
-        }
-        .control-group {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        button {
-            padding: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            border-radius: 8px;
-            color: white;
-            transition: 0.2s;
-        }
-        button:active { transform: scale(0.96); }
-        .btn-play { background-color: #2ecc71; }
-        .btn-pause { background-color: #f39c12; }
-        .btn-stop { background-color: #e74c3c; }
-        .btn-nav { background-color: #3498db; grid-column: span 1.5; }
-        
-        .slider-container, .switch-container {
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            text-align: left;
-        }
-        .slider-container label, .switch-container label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-        input[type=range] {
-            width: 100%;
-            cursor: pointer;
-        }
-        .switch-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 26px;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #ccc; transition: .4s; border-radius: 26px;
-        }
-.slider:before {
-            position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px;
-            background-color: white; transition: .4s; border-radius: 50%;
-        }
-        input:checked + .slider { background-color: #2ecc71; }
-        input:checked + .slider:before { transform: translateX(24px); }
-    </style>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ESP8266 IoT Premium Dashboard</title>
+
+<!-- Tailwind CSS -->
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- MQTT.js -->
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<style>
+
+body {
+
+background-color: #eef2f7;
+
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+}
+
+.custom-card {
+
+background: #ffffff;
+
+box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+
+border: 1px solid rgba(255, 255, 255, 0.8);
+
+}
+
+</style>
+
 </head>
-<body>
 
-    <div class="container">
-        <h2>🎵 MQTT Music Player</h2>
-        <div class="broker-status" id="connectionStatus">Đang kết nối EMQX Broker...</div>
+<body class="flex min-h-screen">
 
-        <!-- Trạng thái phản hồi từ ESP8266 (Topic: i40/class01/music/status) -->
-        <div class="status-box" id="statusDisplay">Chờ thiết bị phản hồi...</div>
 
-        <!-- Nút điều khiển (Topic: i40/class01/music/cmd) -->
-        <div class="control-group">
-            <button class="btn-play" onclick="sendCmd('play')">▶ Phát</button>
-            <button class="btn-pause" onclick="sendCmd('pause')">⏸ Tạm dừng</button>
-            <button class="btn-stop" onclick="sendCmd('stop')">⏹ Dừng</button>
-            <button class="btn-nav" onclick="sendCmd('prev')">⏮ Bài trước</button>
-            <button class="btn-nav" onclick="sendCmd('next')">⏭ Bài sau</button>
-        </div>
 
-        <!-- Thanh trượt âm lượng (Topic: i40/class01/music/volume) -->
-        <div class="slider-container">
-            <label for="volumeSlider">🔊 Âm lượng (<span id="volVal">5</span>):</label>
-            <input type="range" id="volumeSlider" min="0" max="10" value="5" step="1" oninput="updateVolume(this.value)">
-        </div>
+<!-- 1. SIDEBAR (Thanh menu bên trái bo tròn tinh tế) -->
 
-        <!-- Nút gạt vòng lặp (Topic: i40/class01/music/cmd) -->
-        <div class="switch-container">
-            <div class="switch-row">
-                <label for="loopSwitch">🔁 Vòng lặp (Loop):</label>
-                <label class="switch">
-                    <input type="checkbox" id="loopSwitch" onchange="toggleLoop(this)">
-                    <span class="slider"></span>
-                </label>
-            </div>
-        </div>
-    </div>
+<aside class="w-20 lg:w-24 bg-white border-r border-gray-100 hidden md:flex flex-col items-center justify-between py-8 shadow-sm">
 
-    <script>
-        // Kết nối EMQX Broker qua cổng WebSocket bảo mật (wss) tương thích Cloudflare[cite: 1]
-        const brokerUrl = 'wss://broker.emqx.io:8084/mqtt';
-        const clientOptions = {
-            clientId: 'WebMusicPlayer_' + Math.random().toString(16).substr(2, 8),
-            clean: true
-        };
+<!-- Logo / Avatar trên cùng -->
 
-        const client = mqtt.connect(brokerUrl, clientOptions);
+<div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-blue-500/30">
 
-        const TOPIC_CMD = 'i40/class01/music/cmd';
-        const TOPIC_VOL = 'i40/class01/music/volume';
-        const TOPIC_STATUS = 'i40/class01/music/status';
+⚡
 
-        const statusEl = document.getElementById('connectionStatus');
-        const statusDisplayEl = document.getElementById('statusDisplay');
+</div>
 
-        client.on('connect', () => {
-            statusEl.innerText = 'Đã kết nối EMQX thành công! ✅';
-            statusEl.style.color = '#2ecc71';
-// Lắng nghe trạng thái từ ESP8266 gửi về[cite: 1]
-            client.subscribe(TOPIC_STATUS, (err) => {
-                if (!err) console.log('Đã đăng ký nhận topic status');
-            });
-        });
 
-        client.on('error', (err) => {
-            statusEl.innerText = 'Lỗi kết nối MQTT! ❌';
-            statusEl.style.color = '#e74c3c';
-            console.error(err);
-        });
 
-        client.on('message', (topic, payload) => {
-            if (topic === TOPIC_STATUS) {
-                statusDisplayEl.innerText = payload.toString();
-            }
-        });
+<!-- Menu Icons -->
 
-        function sendCmd(payload) {
-            client.publish(TOPIC_CMD, payload);
-        }
+<nav class="space-y-6 flex flex-col items-center">
 
-        function updateVolume(val) {
-            document.getElementById('volVal').innerText = val;
-            client.publish(TOPIC_VOL, val);
-        }
+<a href="#" class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-200 transition">
 
-        function toggleLoop(checkbox) {
-            const payload = checkbox.checked ? 'loop_on' : 'loop_off';
-            client.publish(TOPIC_CMD, payload);
-        }
-    </script>
+🏠
+
+</a>
+
+<a href="#" class="w-12 h-12 rounded-2xl text-gray-400 hover:bg-gray-50 flex items-center justify-center transition">
+
+📊
+
+</a>
+
+<a href="#" class="w-12 h-12 rounded-2xl text-gray-400 hover:bg-gray-50 flex items-center justify-center transition">
+
+🎛️
+
+</a>
+
+<a href="#" class="w-12 h-12 rounded-2xl text-gray-400 hover:bg-gray-50 flex items-center justify-center transition">
+
+⚙️
+
+</a>
+
+</nav>
+
+
+
+<!-- Setting icon dưới cùng -->
+
+<div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm">
+
+N
+
+</div>
+
+</aside>
+
+
+
+<!-- 2. MAIN CONTENT -->
+
+<main class="flex-1 p-6 md:p-10 max-w-7xl mx-auto">
+
+
+<!-- HEADER -->
+
+<header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+
+<div>
+
+<h1 class="text-2xl md:text-3xl font-extrabold text-gray-800">Hi, Lam,</h1>
+
+<p class="text-xl md:text-2xl font-bold text-blue-600">Welcome back to your IoT Hub!</p>
+
+</div>
+
+
+<div class="flex items-center space-x-3 w-full md:w-auto">
+
+<div class="relative flex-1 md:w-80">
+
+<span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">🔍</span>
+
+<input type="text" placeholder="Search devices or topics..." class="w-full pl-11 pr-4 py-3 bg-white border border-gray-100 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+
+</div>
+
+</div>
+
+</header>
+
+
+
+<!-- GRID LAYOUT CHÍNH -->
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+
+<!-- Cột trái & giữa (Chiếm 2 phần) -->
+
+<div class="lg:col-span-2 space-y-6">
+
+
+<!-- Thẻ thông tin trạng thái tổng quan (Gradient Card giống mẫu) -->
+
+<div class="custom-card rounded-3xl p-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-xl shadow-blue-500/20">
+
+<div class="space-y-2 mb-4 sm:mb-0">
+
+<span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm">System Active</span>
+
+<h2 class="text-xl font-bold">ESP8266 Music & Sensor Node</h2>
+
+<p class="text-xs text-blue-100 font-mono" id="connectionStatus">Connecting to EMQX Broker...</p>
+
+</div>
+
+<div class="bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/20 text-center min-w-[120px]">
+
+<p class="text-xs text-blue-200">Device Status</p>
+
+<p class="text-sm font-bold mt-1" id="espStatusBadge">Standby</p>
+
+</div>
+
+</div>
+
+
+
+<!-- Khung hiển thị Live Feed (Status Topic từ ESP8266) -->
+
+<div class="custom-card rounded-3xl p-6">
+
+<div class="flex justify-between items-center mb-3">
+
+<span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Live Real-time Feed</span>
+
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+
+</div>
+
+<div class="bg-gray-900 text-teal-400 font-mono p-4 rounded-2xl text-sm shadow-inner">
+
+<span id="statusDisplay">Waiting for hardware telemetry...</span>
+
+</div>
+
+</div>
+
+
+
+<!-- Bảng điều khiển nhạc (Music Control Panel Cards) -->
+
+<div class="custom-card rounded-3xl p-6">
+
+<h3 class="font-bold text-gray-800 text-base mb-4">🎛️ Music Control Panel</h3>
+
+
+<div class="grid grid-cols-3 gap-3 mb-4">
+
+<button onclick="sendCmd('play')" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-200 transition active:scale-95 text-sm flex items-center justify-center space-x-1">
+
+<span>▶ Play</span>
+
+</button>
+
+<button onclick="sendCmd('pause')" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-amber-200 transition active:scale-95 text-sm flex items-center justify-center space-x-1">
+
+<span>⏸ Pause</span>
+
+</button>
+
+<button onclick="sendCmd('stop')" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-rose-200 transition active:scale-95 text-sm flex items-center justify-center space-x-1">
+
+<span>⏹ Stop</span>
+
+</button>
+
+<button onclick="sendCmd('prev')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-2xl shadow-lg shadow-blue-200 transition active:scale-95 text-sm">
+
+⏮ Prev
+
+</button>
+
+<button onclick="sendCmd('next')" class="col-span-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-2xl shadow-lg shadow-blue-200 transition active:scale-95 text-sm">
+
+⏭ Next
+
+</button>
+
+</div>
+
+</div>
+
+
+
+</div>
+
+
+
+<!-- Cột phải (Cài đặt âm lượng & Vòng lặp) -->
+
+<div class="space-y-6">
+
+
+<!-- Volume Control Card -->
+
+<div class="custom-card rounded-3xl p-6">
+
+<div class="flex justify-between items-center mb-4">
+
+<span class="text-xs font-bold text-gray-500 uppercase tracking-wider">🔊 Volume Control</span>
+
+<span class="bg-blue-50 text-blue-600 text-xs font-bold px-3 py-1 rounded-xl" id="volVal">5</span>
+
+</div>
+
+<input type="range" id="volumeSlider" min="0" max="10" value="5" step="1"
+
+class="w-full h-2.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mb-2"
+
+oninput="updateVolume(this.value)">
+
+<div class="flex justify-between text-[10px] text-gray-400 font-mono">
+
+<span>0 (Mute)</span>
+
+<span>10 (Max)</span>
+
+</div>
+
+</div>
+
+
+
+<!-- Loop Mode Switch Card -->
+
+<div class="custom-card rounded-3xl p-6 flex items-center justify-between">
+
+<div class="flex items-center space-x-3">
+
+<div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl font-bold">
+
+🔁
+
+</div>
+
+<div>
+
+<p class="text-xs font-bold text-gray-800">Loop Playback</p>
+
+<p class="text-[10px] text-gray-400">Continuous repeat</p>
+
+</div>
+
+</div>
+
+<label class="relative inline-flex items-center cursor-pointer">
+
+<input type="checkbox" id="loopSwitch" onchange="toggleLoop(this)" class="sr-only peer">
+
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+
+</label>
+
+</div>
+
+
+
+<!-- Broker Info Card -->
+
+<div class="custom-card rounded-3xl p-6">
+
+<h3 class="font-bold text-gray-800 text-sm mb-3">⚙️ Broker Endpoints</h3>
+
+<div class="space-y-2 text-[11px]">
+
+<div class="bg-gray-50 p-2.5 rounded-xl">
+
+<span class="text-gray-400 block font-semibold">URL:</span>
+
+<span class="font-mono text-blue-600 font-medium">wss://broker.emqx.io:8084/mqtt</span>
+
+</div>
+
+<div class="bg-gray-50 p-2.5 rounded-xl">
+
+<span class="text-gray-400 block font-semibold">Command Topic:</span>
+
+<span class="font-mono text-gray-700">i40/class01/music/cmd</span>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+</div>
+
+
+
+</div>
+
+
+
+</main>
+
+
+
+<!-- Script MQTT -->
+
+<script>
+
+const brokerUrl = 'wss://broker.emqx.io:8084/mqtt';
+
+const clientOptions = {
+
+clientId: 'GlassDashboard_' + Math.random().toString(16).substr(2, 8),
+
+clean: true
+
+};
+
+
+
+const client = mqtt.connect(brokerUrl, clientOptions);
+
+
+
+const TOPIC_CMD = 'i40/class01/music/cmd';
+
+const TOPIC_VOL = 'i40/class01/music/volume';
+
+const TOPIC_STATUS = 'i40/class01/music/status';
+
+
+
+const connectionStatusEl = document.getElementById('connectionStatus');
+
+const espStatusBadgeEl = document.getElementById('espStatusBadge');
+
+const statusDisplayEl = document.getElementById('statusDisplay');
+
+
+
+client.on('connect', () => {
+
+connectionStatusEl.innerText = 'Connected via WebSocket ✅';
+
+client.subscribe(TOPIC_STATUS, (err) => {
+
+if (!err) console.log('Subscribed successfully');
+
+});
+
+});
+
+
+
+client.on('error', (err) => {
+
+connectionStatusEl.innerText = 'Connection Error ❌';
+
+console.error(err);
+
+});
+
+
+
+client.on('message', (topic, payload) => {
+
+if (topic === TOPIC_STATUS) {
+
+const msg = payload.toString();
+
+statusDisplayEl.innerText = msg;
+
+
+if (msg === 'playing') {
+
+espStatusBadgeEl.innerText = 'Playing Active';
+
+espStatusBadgeEl.className = 'text-sm font-bold text-emerald-300 mt-1';
+
+} else if (msg === 'stopped' || msg === 'done') {
+
+espStatusBadgeEl.innerText = 'Stopped';
+
+espStatusBadgeEl.className = 'text-sm font-bold text-rose-300 mt-1';
+
+}
+
+}
+
+});
+
+
+
+function sendCmd(payload) {
+
+client.publish(TOPIC_CMD, payload);
+
+}
+
+
+
+function updateVolume(val) {
+
+document.getElementById('volVal').innerText = val;
+
+client.publish(TOPIC_VOL, val);
+
+}
+
+
+
+function toggleLoop(checkbox) {
+
+const payload = checkbox.checked ? 'loop_on' : 'loop_off';
+
+client.publish(TOPIC_CMD, payload);
+
+}
+
+</script>
+
 </body>
-</html>
+
+</html> 
+
+Tuyệt
