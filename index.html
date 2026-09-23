@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     :root { --ink: #17202a; --muted: #74808b; --line: #e8ecef; --lime: #c7f36b; --cream: #f7f8f3; }
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       margin: 0; min-height: 100vh; color: var(--ink); background: #eef2ee; font-family: 'DM Sans', sans-serif;
     }
@@ -23,29 +23,42 @@
     .nav-item.active { font-weight: 700; }
     .panel { border: 1px solid var(--line); background: white; box-shadow: 0 14px 36px rgba(24, 36, 41, .05); }
     .status-dot { box-shadow: 0 0 0 5px rgba(83, 185, 123, .13); }
-    .control-button { transition: transform .2s ease, box-shadow .2s ease; }
-    .control-button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(24, 36, 41, .1); }
-    .control-button:active { transform: translateY(0); }
+    .control-button { transition: transform .1s ease, box-shadow .2s ease; }
+    .control-button:active { transform: scale(0.97); }
     input[type="range"] { accent-color: #87b92f; }
-    @media (max-width: 900px) { .dashboard-shell { grid-template-columns: 1fr; } .sidebar { border-right: 0; border-bottom: 1px solid var(--line); } .sidebar-nav { display: flex; overflow-x: auto; } .sidebar-nav .nav-item { white-space: nowrap; } }
-    @media (max-width: 640px) { .main-content { padding: 22px 16px !important; } .hero-grid { grid-template-columns: 1fr !important; } .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+    
+    /* Responsive Mobile Customizations */
+    @media (max-width: 900px) {
+      .dashboard-shell { grid-template-columns: 1fr; }
+      .sidebar { border-right: 0; border-bottom: 1px solid var(--line); padding: 16px 20px !important; gap: 12px !important; }
+      .sidebar-nav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+      .sidebar-nav .nav-item { white-space: nowrap; padding: 8px 12px !important; border-radius: 10px; }
+    }
+    @media (max-width: 640px) {
+      .main-content { padding: 16px !important; }
+      .hero-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+      .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+      .panel { padding: 18px !important; border-radius: 20px !important; }
+    }
   </style>
 </head>
 <body>
   <div class="dashboard-shell">
     <!-- SIDEBAR -->
     <aside class="sidebar p-5 md:p-6 flex flex-col gap-8">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-[var(--ink)] text-[var(--lime)] flex items-center justify-center text-xl">♪</div>
-        <div>
-          <div class="brand text-lg font-bold tracking-tight">SoundHub</div>
-          <div class="text-[11px] text-[var(--muted)] uppercase tracking-[.18em]">IoT player</div>
+      <div class="flex items-center justify-between md:justify-start gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-[var(--ink)] text-[var(--lime)] flex items-center justify-center text-xl">♪</div>
+          <div>
+            <div class="brand text-lg font-bold tracking-tight">SoundHub</div>
+            <div class="text-[11px] text-[var(--muted)] uppercase tracking-[.18em]">IoT player</div>
+          </div>
         </div>
       </div>
-      <nav class="sidebar-nav space-y-2">
-        <a class="nav-item active flex items-center gap-3 px-3 py-3 rounded-xl text-sm" href="#dashboard"><span>⌂</span> Tổng quan</a>
-        <a class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-[var(--muted)]" href="#controls"><span>◈</span> Điều khiển</a>
-        <a class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-[var(--muted)]" href="#activity"><span>◷</span> Hoạt động</a>
+      <nav class="sidebar-nav space-y-1 md:space-y-2">
+        <a class="nav-item active flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 rounded-xl text-sm" href="#dashboard"><span>⌂</span> Tổng quan</a>
+        <a class="nav-item flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 rounded-xl text-sm text-[var(--muted)]" href="#controls"><span>◈</span> Điều khiển</a>
+        <a class="nav-item flex items-center gap-2 md:gap-3 px-3 py-2.5 md:py-3 rounded-xl text-sm text-[var(--muted)]" href="#activity"><span>◷</span> Hoạt động</a>
       </nav>
       <div class="mt-auto hidden md:block rounded-2xl p-4 bg-[var(--ink)] text-white">
         <div class="text-xs text-slate-300 mb-2">Thiết bị đang hoạt động</div>
@@ -55,37 +68,36 @@
     </aside>
 
     <!-- MAIN CONTENT -->
-    <main class="main-content p-6 md:p-10" id="dashboard">
-      <header class="flex flex-wrap items-end justify-between gap-4 mb-8">
+    <main class="main-content p-4 md:p-10" id="dashboard">
+      <header class="flex flex-wrap items-start md:items-end justify-between gap-3 mb-6 md:mb-8">
         <div>
-          <p class="text-xs font-bold uppercase tracking-[.2em] text-[#83a932] mb-2">Music control center</p>
-          <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Chào buổi tối, Lam.</h1>
-          <p class="text-sm text-[var(--muted)] mt-2">Quản lý âm nhạc từ xa với phần cứng ESP8266.</p>
+          <p class="text-[11px] md:text-xs font-bold uppercase tracking-[.2em] text-[#83a932] mb-1 md:mb-2">Music control center</p>
+          <h1 class="text-2xl md:text-4xl font-bold tracking-tight">Chào buổi tối, Lam.</h1>
+          <p class="text-xs md:text-sm text-[var(--muted)] mt-1">Quản lý âm nhạc từ xa với phần cứng ESP8266.</p>
         </div>
-        <div class="flex items-center gap-3 rounded-full bg-white border border-[var(--line)] px-4 py-2 text-sm">
+        <div class="flex items-center gap-2.5 rounded-full bg-white border border-[var(--line)] px-3.5 py-1.5 text-xs md:text-sm">
           <span class="status-dot w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span id="connectionStatus" class="text-[var(--muted)]">Đang kết nối Broker...</span>
+          <span id="connectionStatus" class="text-[var(--muted)]">Đang kết nối...</span>
         </div>
       </header>
 
       <!-- HERO SECTION -->
-      <section class="hero-grid grid grid-cols-[minmax(0,1.35fr)_minmax(260px,.65fr)] gap-5 mb-5">
-        <!-- KHU VỰC NOW PLAYING (ĐÃ SỬA ĐỂ HIỂN THỊ TRẠNG THÁI TỪ ESP8266) -->
-        <div class="panel rounded-3xl p-6 md:p-8 bg-[var(--ink)] text-white relative overflow-hidden">
+      <section class="hero-grid grid grid-cols-[minmax(0,1.35fr)_minmax(260px,.65fr)] gap-4 md:gap-5 mb-4 md:mb-5">
+        <div class="panel rounded-3xl p-5 md:p-8 bg-[var(--ink)] text-white relative overflow-hidden">
           <div class="absolute -right-12 -top-20 w-64 h-64 rounded-full bg-[var(--lime)] opacity-20"></div>
-          <div class="relative z-10 flex flex-col justify-between min-h-[250px]">
+          <div class="relative z-10 flex flex-col justify-between min-h-[200px] md:min-h-[250px]">
             <div class="flex justify-between items-start">
-              <span class="text-xs uppercase tracking-[.2em] text-slate-300">Now playing / Status</span>
-              <span class="rounded-full bg-white/10 px-3 py-1 text-xs">Live device</span>
+              <span class="text-[11px] uppercase tracking-[.2em] text-slate-300">Now playing / Status</span>
+              <span class="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px]">Live device</span>
             </div>
-            <div>
-              <div class="text-5xl mb-5 text-[var(--lime)]">♫</div>
-              <h2 class="text-2xl font-bold" id="trackTitle">Đang chờ tín hiệu...</h2>
-              <p class="text-slate-400 text-sm mt-1" id="trackSubtitle">ESP8266 Music Player · MQTT Connected</p>
-              <div class="mt-7 h-1.5 rounded-full bg-white/15 overflow-hidden">
+            <div class="mt-4 md:mt-0">
+              <div class="text-4xl md:text-5xl mb-3 md:mb-5 text-[var(--lime)]">♫</div>
+              <h2 class="text-xl md:text-2xl font-bold truncate" id="trackTitle">Đang chờ tín hiệu...</h2>
+              <p class="text-slate-400 text-xs md:text-sm mt-1 truncate" id="trackSubtitle">ESP8266 Music Player · MQTT Connected</p>
+              <div class="mt-5 md:mt-7 h-1.5 rounded-full bg-white/15 overflow-hidden">
                 <div class="w-2/5 h-full rounded-full bg-[var(--lime)] transition-all duration-300" id="progressBar"></div>
               </div>
-              <div class="flex justify-between text-[11px] text-slate-400 mt-2">
+              <div class="flex justify-between text-[10px] md:text-[11px] text-slate-400 mt-2">
                 <span id="telemetryStatus">Telemetry Active</span>
                 <span>Real-time</span>
               </div>
@@ -93,70 +105,70 @@
           </div>
         </div>
 
-        <div class="panel rounded-3xl p-6 flex flex-col justify-between">
-          <div class="flex items-center justify-between"><span class="text-sm font-semibold">Trạng thái ESP</span><span class="text-2xl">⌁</span></div>
-          <div>
-            <div class="text-3xl font-bold mt-8 text-emerald-600" id="espStatusMain">Online</div>
-            <p class="text-sm text-[var(--muted)] mt-1">MQTT broker connected</p>
+        <div class="panel rounded-3xl p-5 md:p-6 flex flex-col justify-between">
+          <div class="flex items-center justify-between"><span class="text-sm font-semibold">Trạng thái ESP</span><span class="text-xl md:text-2xl">⌁</span></div>
+          <div class="my-3 md:my-0">
+            <div class="text-2xl md:text-3xl font-bold text-emerald-600" id="espStatusMain">Online</div>
+            <p class="text-xs md:text-sm text-[var(--muted)] mt-1">MQTT broker connected</p>
           </div>
-          <div class="mt-7 pt-4 border-t border-[var(--line)] flex justify-between text-xs text-[var(--muted)]">
+          <div class="pt-3 md:pt-4 border-t border-[var(--line)] flex justify-between text-xs text-[var(--muted)]">
             <span>Protocol</span><strong class="text-[var(--ink)]">WebSocket (WSS)</strong>
           </div>
         </div>
       </section>
 
       <!-- CONTROLS SECTION -->
-      <section id="controls" class="grid grid-cols-1 lg:grid-cols-[1.35fr_.65fr] gap-5">
-        <div class="panel rounded-3xl p-6">
-          <div class="flex items-center justify-between mb-5">
+      <section id="controls" class="grid grid-cols-1 lg:grid-cols-[1.35fr_.65fr] gap-4 md:gap-5">
+        <div class="panel rounded-3xl p-5 md:p-6">
+          <div class="flex items-center justify-between mb-4 md:mb-5">
             <div>
-              <h2 class="text-lg font-bold">Điều khiển phát nhạc</h2>
-              <p class="text-xs text-[var(--muted)] mt-1">Gửi lệnh trực tiếp qua topic: <code class="text-blue-600 font-mono">i40/class01/music/cmd</code></p>
+              <h2 class="text-base md:text-lg font-bold">Điều khiển phát nhạc</h2>
+              <p class="text-[11px] md:text-xs text-[var(--muted)] mt-0.5">Topic: <code class="text-blue-600 font-mono text-[10px] md:text-xs">i40/class01/music/cmd</code></p>
             </div>
-            <span class="text-xs text-[var(--muted)]">MQTT / cmd</span>
+            <span class="text-[11px] md:text-xs text-[var(--muted)]">MQTT / cmd</span>
           </div>
 
-          <div class="control-grid grid grid-cols-4 gap-3">
-            <button onclick="sendCmd('play')" class="control-button rounded-2xl p-4 bg-[var(--lime)] text-left">
-              <span class="text-xl">▶</span>
-              <span class="block text-sm font-bold mt-5">Phát</span>
-              <span class="block text-[10px] opacity-60 mt-1">Command</span>
+          <div class="control-grid grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button onclick="sendCmd('play')" class="control-button rounded-2xl p-3.5 md:p-4 bg-[var(--lime)] text-left">
+              <span class="text-lg md:text-xl">▶</span>
+              <span class="block text-xs md:text-sm font-bold mt-3 md:mt-5">Phát</span>
+              <span class="block text-[10px] opacity-60 mt-0.5">Command</span>
             </button>
-            <button onclick="sendCmd('pause')" class="control-button rounded-2xl p-4 bg-[#fff0c8] text-left">
-              <span class="text-xl">Ⅱ</span>
-              <span class="block text-sm font-bold mt-5">Tạm dừng</span>
-              <span class="block text-[10px] opacity-60 mt-1">Command</span>
+            <button onclick="sendCmd('pause')" class="control-button rounded-2xl p-3.5 md:p-4 bg-[#fff0c8] text-left">
+              <span class="text-lg md:text-xl">Ⅱ</span>
+              <span class="block text-xs md:text-sm font-bold mt-3 md:mt-5">Tạm dừng</span>
+              <span class="block text-[10px] opacity-60 mt-0.5">Command</span>
             </button>
-            <button onclick="sendCmd('stop')" class="control-button rounded-2xl p-4 bg-[#ffd8d2] text-left">
-              <span class="text-xl">■</span>
-              <span class="block text-sm font-bold mt-5">Dừng</span>
-              <span class="block text-[10px] opacity-60 mt-1">Command</span>
+            <button onclick="sendCmd('stop')" class="control-button rounded-2xl p-3.5 md:p-4 bg-[#ffd8d2] text-left">
+              <span class="text-lg md:text-xl">■</span>
+              <span class="block text-xs md:text-sm font-bold mt-3 md:mt-5">Dừng</span>
+              <span class="block text-[10px] opacity-60 mt-0.5">Command</span>
             </button>
-            <button onclick="sendCmd('next')" class="control-button rounded-2xl p-4 bg-[#d9f2ed] text-left">
-              <span class="text-xl">››</span>
-              <span class="block text-sm font-bold mt-5">Bài tiếp</span>
-              <span class="block text-[10px] opacity-60 mt-1">Command</span>
+            <button onclick="sendCmd('next')" class="control-button rounded-2xl p-3.5 md:p-4 bg-[#d9f2ed] text-left">
+              <span class="text-lg md:text-xl">››</span>
+              <span class="block text-xs md:text-sm font-bold mt-3 md:mt-5">Bài tiếp</span>
+              <span class="block text-[10px] opacity-60 mt-0.5">Command</span>
             </button>
           </div>
-          <button onclick="sendCmd('prev')" class="mt-4 text-xs font-semibold text-[var(--muted)] hover:text-[var(--ink)] flex items-center gap-1">‹‹ Bài trước đó</button>
+          <button onclick="sendCmd('prev')" class="mt-4 text-xs font-semibold text-[var(--muted)] hover:text-[var(--ink)] flex items-center gap-1 py-1">‹‹ Bài trước đó</button>
         </div>
 
         <!-- VOLUME & LOOP CARD -->
-        <div class="panel rounded-3xl p-6 flex flex-col justify-between">
+        <div class="panel rounded-3xl p-5 md:p-6 flex flex-col justify-between">
           <div>
             <div class="flex justify-between items-center">
-              <h2 class="text-lg font-bold">Âm lượng</h2>
-              <span id="volVal" class="text-2xl font-bold">5</span>
+              <h2 class="text-base md:text-lg font-bold">Âm lượng</h2>
+              <span id="volVal" class="text-xl md:text-2xl font-bold">5</span>
             </div>
-            <p class="text-xs text-[var(--muted)] mt-1">Điều chỉnh mức âm thanh phần cứng</p>
-            <input type="range" id="volumeSlider" min="0" max="10" value="5" step="1" class="w-full mt-6 h-2 bg-[#e9eddf] rounded-lg cursor-pointer" oninput="updateVolume(this.value)">
-            <div class="flex justify-between text-[11px] text-[var(--muted)] mt-2"><span>0 (Im lặng)</span><span>10 (Cực đại)</span></div>
+            <p class="text-[11px] md:text-xs text-[var(--muted)] mt-1">Điều chỉnh mức âm thanh phần cứng</p>
+            <input type="range" id="volumeSlider" min="0" max="10" value="5" step="1" class="w-full mt-4 md:mt-6 h-2 bg-[#e9eddf] rounded-lg cursor-pointer" oninput="updateVolume(this.value)">
+            <div class="flex justify-between text-[10px] md:text-[11px] text-[var(--muted)] mt-2"><span>0 (Im lặng)</span><span>10 (Cực đại)</span></div>
           </div>
 
-          <div class="flex items-center justify-between border-t border-[var(--line)] mt-6 pt-5">
+          <div class="flex items-center justify-between border-t border-[var(--line)] mt-5 pt-4 md:mt-6 md:pt-5">
             <div>
-              <div class="text-sm font-semibold">Vòng lặp</div>
-              <div class="text-xs text-[var(--muted)] mt-1">Lặp lại liên tục</div>
+              <div class="text-xs md:text-sm font-semibold">Vòng lặp</div>
+              <div class="text-[11px] text-[var(--muted)] mt-0.5">Lặp lại liên tục</div>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" id="loopSwitch" onchange="toggleLoop(this)" class="sr-only peer">
@@ -167,26 +179,26 @@
       </section>
 
       <!-- ACTIVITY WIDGETS -->
-      <section id="activity" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
-        <div class="panel rounded-2xl p-4">
-          <div class="text-xs text-[var(--muted)]">Trạng thái Broker</div>
-          <div class="mt-2 font-bold text-emerald-600" id="brokerStateText">Đang chờ</div>
+      <section id="activity" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4 md:mt-5">
+        <div class="panel rounded-2xl p-3.5 md:p-4">
+          <div class="text-[11px] md:text-xs text-[var(--muted)]">Trạng thái Broker</div>
+          <div class="mt-1.5 md:mt-2 text-xs md:text-sm font-bold text-emerald-600 truncate" id="brokerStateText">Đang chờ</div>
         </div>
-        <div class="panel rounded-2xl p-4">
-          <div class="text-xs text-[var(--muted)]">Âm lượng hiện tại</div>
-          <div class="mt-2 font-bold"><span id="volumeStat">50</span>%</div>
+        <div class="panel rounded-2xl p-3.5 md:p-4">
+          <div class="text-[11px] md:text-xs text-[var(--muted)]">Âm lượng hiện tại</div>
+          <div class="mt-1.5 md:mt-2 text-xs md:text-sm font-bold"><span id="volumeStat">50</span>%</div>
         </div>
-        <div class="panel rounded-2xl p-4">
-          <div class="text-xs text-[var(--muted)]">Giao thức</div>
-          <div class="mt-2 font-bold">MQTT / WSS</div>
+        <div class="panel rounded-2xl p-3.5 md:p-4">
+          <div class="text-[11px] md:text-xs text-[var(--muted)]">Giao thức</div>
+          <div class="mt-1.5 md:mt-2 text-xs md:text-sm font-bold">MQTT / WSS</div>
         </div>
-        <div class="panel rounded-2xl p-4">
-          <div class="text-xs text-[var(--muted)]">Node phần cứng</div>
-          <div class="mt-2 font-bold text-blue-600">ESP8266</div>
+        <div class="panel rounded-2xl p-3.5 md:p-4">
+          <div class="text-[11px] md:text-xs text-[var(--muted)]">Node phần cứng</div>
+          <div class="mt-1.5 md:mt-2 text-xs md:text-sm font-bold text-blue-600">ESP8266</div>
         </div>
       </section>
 
-      <footer class="text-center text-[11px] text-[var(--muted)] mt-8">SoundHub Dashboard · ESP8266 / EMQX</footer>
+      <footer class="text-center text-[10px] md:text-[11px] text-[var(--muted)] mt-6 md:mt-8">SoundHub Dashboard · ESP8266 / EMQX</footer>
     </main>
   </div>
 
@@ -206,7 +218,7 @@
     const trackSubtitleEl = document.getElementById('trackSubtitle');
 
     client.on('connect', () => {
-      connectionStatusEl.innerText = 'Đã kết nối Broker ✅';
+      connectionStatusEl.innerText = 'Đã kết nối ✅';
       brokerStateTextEl.innerText = 'Đã kết nối';
       client.subscribe(TOPIC_STATUS, (err) => {
         if (!err) console.log('Đã subscribe topic status thành công');
@@ -214,7 +226,7 @@
     });
 
     client.on('error', (err) => {
-      connectionStatusEl.innerText = 'Lỗi kết nối MQTT ❌';
+      connectionStatusEl.innerText = 'Lỗi kết nối ❌';
       brokerStateTextEl.innerText = 'Lỗi kết nối';
       console.error(err);
     });
@@ -222,7 +234,6 @@
     client.on('message', (topic, payload) => {
       if (topic === TOPIC_STATUS) {
         const msg = payload.toString();
-        // Cập nhật trạng thái / tên bài hát nhận được từ ESP8266 vào phần Now Playing phía trên
         trackTitleEl.innerText = msg;
         trackSubtitleEl.innerText = 'ESP8266 Music Player · Live Status Update';
       }
