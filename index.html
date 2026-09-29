@@ -56,7 +56,7 @@
         <div class="flex items-center gap-3 mb-6 md:mb-8">
           <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl font-bold shrink-0">♪</div>
           <div>
-            <div class="font-bold tracking-tight text-base">DONSKYTECH</div>
+            <div class="font-bold tracking-tight text-base">阮國長林</div>
             <div class="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-semibold">MQTT Dashboard</div>
           </div>
         </div>
@@ -219,7 +219,7 @@
   <!-- SCRIPT MQTT -->
   <script>
     const brokerUrl = 'wss://broker.emqx.io:8084/mqtt';
-    const clientOptions = { clientId: 'Donskytech_' + Math.random().toString(16).substr(2, 8), clean: true };
+    const clientOptions = { clientId: 'changlin_' + Math.random().toString(16).substr(2, 8), clean: true };
     const client = mqtt.connect(brokerUrl, clientOptions);
 
     const TOPIC_CMD = 'i40/class01/music/cmd';
