@@ -112,7 +112,6 @@
           <a class="nav-item active" href="#dashboard"><span>⌂</span> Dashboard</a>
           <a class="nav-item" href="#controls"><span>◈</span> Controls</a>
           <a class="nav-item" href="#activity"><span>◷</span> Activity</a>
-          <!-- Đã thêm class hide-on-mobile-qr để ép ẩn trên điện thoại, máy tính vẫn hiện bình thường -->
           <a class="nav-item text-emerald-400 font-semibold hide-on-mobile-qr" onclick="toggleQRModal(true)"><span>⊡</span> Mã QR Truy Cập</a>
         </nav>
       </div>
@@ -153,14 +152,15 @@
           </div>
         </div>
 
+        <!-- ĐÃ ĐỔI THÀNH TÍN HIỆU WI-FI -->
         <div class="panel rounded-2xl p-3.5 md:p-4 flex flex-col justify-between">
           <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
-            <span>Device State</span>
-            <span class="text-blue-400 text-base md:text-lg">⌁</span>
+            <span>Wi-Fi Signal</span>
+            <span class="text-blue-400 text-base md:text-lg">📶</span>
           </div>
           <div class="mt-2.5">
-            <div class="text-sm md:text-base font-bold text-emerald-400">Online</div>
-            <div class="text-[10px] md:text-[11px] text-[var(--text-muted)] mt-0.5">Broker Connected</div>
+            <div id="wifiSignalVal" class="text-sm md:text-base font-bold text-blue-400">-- dBm</div>
+            <div class="text-[10px] md:text-[11px] text-[var(--text-muted)] mt-0.5">ESP8266 RSSI</div>
           </div>
         </div>
 
@@ -256,7 +256,7 @@
           <span class="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Connected</span>
         </div>
         <div class="bg-black/40 border border-gray-800 rounded-xl p-3 font-mono text-[11px] text-gray-400 h-20 md:h-24 overflow-y-auto" id="logBox">
-          <div>[System] Đã ẩn nút QR ở menu ngang trên mobile thành công!</div>
+          <div>[System] Đã đổi trạng thái sang hiển thị tín hiệu Wi-Fi!</div>
         </div>
       </section>
 
@@ -273,7 +273,6 @@
       <h3 class="text-base font-bold text-white">Quét mã QR truy cập</h3>
       <p class="text-xs text-[var(--text-muted)] mt-1">Dùng điện thoại quét để mở dashboard chung cho nhóm.</p>
       
-      <!-- Khung chứa ảnh QR Code tạo tự động từ API -->
       <div class="bg-white p-3 rounded-2xl inline-block my-4 shadow-inner">
         <img id="qrImage" src="" alt="QR Code" class="w-48 h-48 mx-auto object-contain">
       </div>
@@ -295,15 +294,16 @@
     const TOPIC_CMD = 'i40/class01/music/cmd';
     const TOPIC_VOL = 'i40/class01/music/volume';
     const TOPIC_STATUS = 'i40/class01/music/status';
+    const TOPIC_WIFI = 'i40/class01/music/wifi'; // Topic mới nhận giá trị Wi-Fi từ ESP8266
     const TARGET_URL = 'https://esp.nguyenlamblog.workers.dev/';
 
     const connectionStatusEl = document.getElementById('connectionStatus');
     const currentTrackTitleEl = document.getElementById('currentTrackTitle');
+    const wifiSignalValEl = document.getElementById('wifiSignalVal');
     const logBox = document.getElementById('logBox');
     const qrModal = document.getElementById('qrModal');
     const qrImage = document.getElementById('qrImage');
 
-    // Tự động load QR code vào thẻ img qua API công khai
     qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(TARGET_URL)}`;
 
     function toggleQRModal(show) {
@@ -314,7 +314,6 @@
       }
     }
 
-    // Đóng modal khi bấm ra ngoài vùng nội dung
     qrModal.addEventListener('click', (e) => {
       if (e.target === qrModal) toggleQRModal(false);
     });
@@ -328,8 +327,10 @@
     client.on('connect', () => {
       connectionStatusEl.innerText = 'Connected ✅';
       addLog('Đã kết nối thành công tới EMQX Broker!');
-      client.subscribe(TOPIC_STATUS, (err) => {
-        if (!err) addLog('Đã subscribe topic: ' + TOPIC_STATUS);
+      
+      // Subscribe cả 2 topic từ ESP8266 gửi về
+      client.subscribe([TOPIC_STATUS, TOPIC_WIFI], (err) => {
+        if (!err) addLog('Đã subscribe các topic trạng thái & Wi-Fi');
       });
     });
 
@@ -340,10 +341,13 @@
     });
 
     client.on('message', (topic, payload) => {
+      const msg = payload.toString();
       if (topic === TOPIC_STATUS) {
-        const msg = payload.toString();
         currentTrackTitleEl.innerText = msg;
         addLog(`Nhận status từ ESP8266: "${msg}"`);
+      } else if (topic === TOPIC_WIFI) {
+        wifiSignalValEl.innerText = msg + ' dBm';
+        addLog(`Cập nhật tín hiệu Wi-Fi: ${msg} dBm`);
       }
     });
 
