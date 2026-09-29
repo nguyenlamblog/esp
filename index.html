@@ -25,7 +25,7 @@
     }
     .dashboard-shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; max-width: 1600px; margin: 0 auto; }
     .sidebar { background: var(--bg-sidebar); border-right: 1px solid var(--border-color); }
-    .nav-item { transition: all .2s ease; color: var(--text-muted); }
+    .nav-item { transition: all .2s ease; color: var(--text-muted); cursor: pointer; }
     .nav-item:hover, .nav-item.active { color: var(--text-main); background: rgba(255, 255, 255, 0.05); }
     .nav-item.active { font-weight: 600; border-left: 3px solid var(--accent-green); }
     .panel { background: var(--card-bg); border: 1px solid var(--border-color); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
@@ -33,37 +33,47 @@
     .control-button:active { transform: scale(0.96); }
     input[type="range"] { accent-color: #10b981; }
 
-    /* Fix cực tốt cho Mobile */
+    /* Modal Styling */
+    .modal-backdrop {
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      transition: opacity 0.2s ease;
+    }
+
+    /* Tối ưu hóa siêu mượt cho Mobile */
     @media (max-width: 900px) {
       .dashboard-shell { grid-template-columns: 1fr; }
-      .sidebar { border-right: 0; border-bottom: 1px solid var(--border-color); padding: 12px 16px !important; }
-      .sidebar-nav { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
-      .sidebar-nav .nav-item { white-space: nowrap; border-left: none !important; border-radius: 8px; }
-      .sidebar > div:nth-child(2) { display: none; /* Ẩn phần hardware node dưới sidebar trên mobile để gọn màn hình */ }
+      .sidebar { border-right: 0; border-bottom: 1px solid var(--border-color); padding: 10px 14px !important; }
+      .sidebar > div:first-child { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+      .sidebar-nav { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+      .sidebar-nav .nav-item { white-space: nowrap; border-left: none !important; border-radius: 8px; padding: 6px 12px !important; font-size: 12px; }
+      .sidebar > div:nth-child(2) { display: none; }
     }
     @media (max-width: 640px) {
       .main-content { padding: 12px !important; }
-      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
-      .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+      .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
     }
   </style>
 </head>
 <body>
   <div class="dashboard-shell">
     <!-- SIDEBAR -->
-    <aside class="sidebar p-6 flex flex-col justify-between">
+    <aside class="sidebar p-5 flex flex-col justify-between">
       <div>
-        <div class="flex items-center gap-3 mb-6 md:mb-8">
-          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl font-bold shrink-0">♪</div>
+        <div class="flex items-center gap-3 mb-4 md:mb-8">
+          <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-lg md:text-xl font-bold shrink-0">♪</div>
           <div>
-            <div class="font-bold tracking-tight text-base">阮國長林</div>
-            <div class="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-semibold">MQTT Dashboard</div>
+            <div class="font-bold tracking-tight text-sm md:text-base">CHANGLIN</div>
+            <div class="text-[9px] md:text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-semibold">MQTT Dashboard</div>
           </div>
         </div>
         <nav class="sidebar-nav space-y-1.5">
           <a class="nav-item active flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm" href="#dashboard"><span>⌂</span> Dashboard</a>
           <a class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm" href="#controls"><span>◈</span> Controls</a>
           <a class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm" href="#activity"><span>◷</span> Activity</a>
+          <!-- Nút mở Popup QR Code -->
+          <a class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-emerald-400 font-medium" onclick="toggleQRModal(true)"><span>⊡</span> Mã QR Truy Cập</a>
         </nav>
       </div>
       <div class="hidden md:block rounded-2xl p-4 bg-gray-900/50 border border-gray-800">
@@ -74,24 +84,29 @@
 
     <!-- MAIN CONTENT -->
     <main class="main-content p-4 md:p-8 overflow-y-auto" id="dashboard">
-      <header class="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <header class="flex flex-wrap items-center justify-between gap-3 mb-4 md:mb-5">
         <div>
           <h1 class="text-xl md:text-3xl font-bold tracking-tight">MQTT Music Dashboard</h1>
           <p class="text-xs text-[var(--text-muted)] mt-0.5">Hệ thống điều khiển phát nhạc IoT thời gian thực qua EMQX Broker.</p>
         </div>
-        <div class="flex items-center gap-2 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)] px-3 py-1.5 text-xs">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
-          <span id="connectionStatus" class="text-gray-300 font-medium truncate">Đang kết nối Broker...</span>
+        <div class="flex items-center gap-2">
+          <!-- Nút QR code nhanh trên header cho Mobile -->
+          <button onclick="toggleQRModal(true)" class="md:hidden bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5">
+            <span>⊡</span> QR Code
+          </button>
+          <div class="flex items-center gap-2 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)] px-3 py-1.5 text-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+            <span id="connectionStatus" class="text-gray-300 font-medium truncate">Đang kết nối Broker...</span>
+          </div>
         </div>
       </header>
 
       <!-- TOP METRICS -->
       <section class="metrics-grid grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
-        <!-- Card 1: Now Playing -->
         <div class="panel rounded-2xl p-3.5 md:p-4 flex flex-col justify-between">
           <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
             <span>Now Playing</span>
-            <span class="text-emerald-400 text-lg">♫</span>
+            <span class="text-emerald-400 text-base md:text-lg">♫</span>
           </div>
           <div class="mt-2.5">
             <div id="currentTrackTitle" class="text-sm md:text-base font-bold truncate text-emerald-300">Đang chờ tín hiệu...</div>
@@ -99,11 +114,10 @@
           </div>
         </div>
 
-        <!-- Card 2: Trạng thái ESP -->
         <div class="panel rounded-2xl p-3.5 md:p-4 flex flex-col justify-between">
           <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
             <span>Device State</span>
-            <span class="text-blue-400 text-lg">⌁</span>
+            <span class="text-blue-400 text-base md:text-lg">⌁</span>
           </div>
           <div class="mt-2.5">
             <div class="text-sm md:text-base font-bold text-emerald-400">Online</div>
@@ -111,11 +125,10 @@
           </div>
         </div>
 
-        <!-- Card 3: Âm lượng -->
         <div class="panel rounded-2xl p-3.5 md:p-4 flex flex-col justify-between">
           <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
             <span>Volume Level</span>
-            <span class="text-amber-400 text-lg">🔊</span>
+            <span class="text-amber-400 text-base md:text-lg">🔊</span>
           </div>
           <div class="mt-2.5">
             <div class="text-sm md:text-base font-bold"><span id="volumeStat">15</span>/30</div>
@@ -123,11 +136,10 @@
           </div>
         </div>
 
-        <!-- Card 4: Giao thức -->
         <div class="panel rounded-2xl p-3.5 md:p-4 flex flex-col justify-between">
           <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
             <span>Protocol</span>
-            <span class="text-purple-400 text-lg">⚡</span>
+            <span class="text-purple-400 text-base md:text-lg">⚡</span>
           </div>
           <div class="mt-2.5">
             <div class="text-sm md:text-base font-bold text-purple-300">WSS / MQTT</div>
@@ -138,7 +150,6 @@
 
       <!-- CONTROLS & SETTINGS SECTION -->
       <section id="controls" class="grid grid-cols-1 lg:grid-cols-[1.35fr_.65fr] gap-4 mb-4">
-        <!-- 4 nút điều khiển -->
         <div class="panel rounded-2xl p-4 md:p-5">
           <div class="flex items-center justify-between mb-3.5">
             <div>
@@ -150,22 +161,22 @@
 
           <div class="control-grid grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3">
             <button onclick="sendCmd('play')" class="control-button rounded-xl p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-left hover:bg-emerald-500/20">
-              <span class="text-lg">▶</span>
+              <span class="text-base md:text-lg">▶</span>
               <span class="block text-xs font-bold mt-2">Phát nhạc</span>
               <span class="block text-[9px] text-emerald-400/70 mt-0.5">play</span>
             </button>
             <button onclick="sendCmd('pause')" class="control-button rounded-xl p-3 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-left hover:bg-amber-500/20">
-              <span class="text-lg">Ⅱ</span>
+              <span class="text-base md:text-lg">Ⅱ</span>
               <span class="block text-xs font-bold mt-2">Tạm dừng</span>
               <span class="block text-[9px] text-amber-400/70 mt-0.5">pause</span>
             </button>
             <button onclick="sendCmd('stop')" class="control-button rounded-xl p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-left hover:bg-rose-500/20">
-              <span class="text-lg">■</span>
+              <span class="text-base md:text-lg">■</span>
               <span class="block text-xs font-bold mt-2">Dừng lại</span>
               <span class="block text-[9px] text-rose-400/70 mt-0.5">stop</span>
             </button>
             <button onclick="sendCmd('next')" class="control-button rounded-xl p-3 bg-blue-500/10 border border-blue-500/30 text-blue-300 text-left hover:bg-blue-500/20">
-              <span class="text-lg">››</span>
+              <span class="text-base md:text-lg">››</span>
               <span class="block text-xs font-bold mt-2">Bài tiếp</span>
               <span class="block text-[9px] text-blue-400/70 mt-0.5">next</span>
             </button>
@@ -173,7 +184,6 @@
           <button onclick="sendCmd('prev')" class="mt-3 text-xs font-semibold text-[var(--text-muted)] hover:text-white flex items-center gap-1 py-1">‹‹ Bài trước đó (Previous)</button>
         </div>
 
-        <!-- Thanh trượt âm lượng (1 - 30) & Vòng lặp -->
         <div class="panel rounded-2xl p-4 md:p-5 flex flex-col justify-between">
           <div>
             <div class="flex justify-between items-center mb-1">
@@ -182,7 +192,6 @@
             </div>
             <p class="text-[10px] md:text-[11px] text-[var(--text-muted)]">Tinh chỉnh mức âm thanh phần cứng từ 1 đến 30</p>
             
-            <!-- Range từ 1 đến 30, mặc định là 15 -->
             <input type="range" id="volumeSlider" min="1" max="30" value="15" step="1" class="w-full mt-4 h-2 bg-gray-700 rounded-lg cursor-pointer" oninput="updateVolume(this.value)">
             
             <div class="flex justify-between text-[10px] text-[var(--text-muted)] mt-1.5"><span>1 (Thấp)</span><span>30 (Cực đại)</span></div>
@@ -208,27 +217,68 @@
           <span class="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Connected</span>
         </div>
         <div class="bg-black/40 border border-gray-800 rounded-xl p-3 font-mono text-[11px] text-gray-400 h-20 md:h-24 overflow-y-auto" id="logBox">
-          <div>[System] Khởi tạo giao diện tối ưu Mobile & Âm lượng (1-30)...</div>
+          <div>[System] Đã tích hợp Popup mã QR truy cập thành công!</div>
         </div>
       </section>
 
-      <footer class="text-center text-[10px] text-[var(--text-muted)] mt-5">ESP8266 MQTT Music Dashboard · Optimized for Mobile & Web</footer>
+      <footer class="text-center text-[10px] text-[var(--text-muted)] mt-5">ESP8266 MQTT Music Dashboard · Powered by Changlin</footer>
     </main>
   </div>
 
-  <!-- SCRIPT MQTT -->
+  <!-- QR CODE POPUP MODAL -->
+  <div id="qrModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="panel rounded-3xl p-6 max-w-sm w-full text-center relative border border-gray-700 shadow-2xl bg-[#111827]">
+      <button onclick="toggleQRModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-white bg-gray-800 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✕</button>
+      
+      <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl font-bold mx-auto mb-3">⊡</div>
+      <h3 class="text-base font-bold text-white">Quét mã QR truy cập</h3>
+      <p class="text-xs text-[var(--text-muted)] mt-1">Dùng điện thoại quét để mở dashboard chung cho nhóm.</p>
+      
+      <!-- Khung chứa ảnh QR Code tạo tự động từ API -->
+      <div class="bg-white p-3 rounded-2xl inline-block my-4 shadow-inner">
+        <img id="qrImage" src="" alt="QR Code" class="w-48 h-48 mx-auto object-contain">
+      </div>
+
+      <div class="bg-black/30 border border-gray-800 rounded-xl p-2.5 text-xs text-emerald-300 font-mono truncate select-all mb-4">
+        https://esp.nguyenlamblog.workers.dev/
+      </div>
+
+      <button onclick="toggleQRModal(false)" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all">Đóng cửa sổ</button>
+    </div>
+  </div>
+
+  <!-- SCRIPT MQTT & QR -->
   <script>
     const brokerUrl = 'wss://broker.emqx.io:8084/mqtt';
-    const clientOptions = { clientId: 'changlin_' + Math.random().toString(16).substr(2, 8), clean: true };
+    const clientOptions = { clientId: 'Changlin_' + Math.random().toString(16).substr(2, 8), clean: true };
     const client = mqtt.connect(brokerUrl, clientOptions);
 
     const TOPIC_CMD = 'i40/class01/music/cmd';
     const TOPIC_VOL = 'i40/class01/music/volume';
     const TOPIC_STATUS = 'i40/class01/music/status';
+    const TARGET_URL = 'https://esp.nguyenlamblog.workers.dev/';
 
     const connectionStatusEl = document.getElementById('connectionStatus');
     const currentTrackTitleEl = document.getElementById('currentTrackTitle');
     const logBox = document.getElementById('logBox');
+    const qrModal = document.getElementById('qrModal');
+    const qrImage = document.getElementById('qrImage');
+
+    // Tự động load QR code vào thẻ img qua API công khai
+    qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(TARGET_URL)}`;
+
+    function toggleQRModal(show) {
+      if (show) {
+        qrModal.classList.remove('hidden');
+      } else {
+        qrModal.classList.add('hidden');
+      }
+    }
+
+    // Đóng modal khi bấm ra ngoài vùng nội dung
+    qrModal.addEventListener('click', (e) => {
+      if (e.target === qrModal) toggleQRModal(false);
+    });
 
     function addLog(text) {
       const time = new Date().toLocaleTimeString();
@@ -270,7 +320,6 @@
 
     function sendCmd(payload) { publishMessage(TOPIC_CMD, payload); }
     
-    // Xử lý thanh âm lượng từ 1 đến 30
     function updateVolume(val) { 
       document.getElementById('volVal').innerText = val; 
       document.getElementById('volumeStat').innerText = val; 
