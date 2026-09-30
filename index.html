@@ -2,120 +2,329 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>IoT Dashboard - Giám Sát Nhiệt Độ</title>
-    <!-- Thêm thư viện MQTT.js -->
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Control Hub - Trang Chủ</title>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f9; }
-        .card { background: white; padding: 20px; border-radius: 10px; display: inline-block; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
-        .alert { background-color: #ff4d4d; color: white; padding: 15px; border-radius: 5px; margin-top: 20px; display: none; }
-        button { padding: 10px 20px; font-size: 16px; margin-top: 15px; cursor: pointer; background-color: #333; color: white; border: none; border-radius: 5px; }
-        button:hover { background-color: #555; }
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --primary-color: #3b82f6;
+            --success-color: #10b981;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header trên cùng */
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .top-header h2 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .user-badge {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        /* Banner trạng thái */
+        .banner {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 16px 20px;
+            border-radius: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .banner-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .banner-left i {
+            font-size: 22px;
+            color: var(--primary-color);
+        }
+
+        /* 3 Cột chính ở hàng trên (Tối ưu vuốt ngang / slider trên mobile giống hệt app thực tế) */
+        .grid-3-cols {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-main);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: var(--text-sub);
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* Tiêu đề section */
+        .section-heading {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-main);
+        }
+
+        /* Danh sách dự án */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .project-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .project-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary-color);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
+        }
+
+        .project-icon {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .project-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 6px 0;
+            color: var(--text-main);
+        }
+
+        .project-desc {
+            font-size: 13px;
+            color: var(--text-sub);
+            margin: 0 0 16px 0;
+            line-height: 1.4;
+        }
+
+        .project-link {
+            font-size: 13px;
+            font-weight: 600;
+            color: #60a5fa;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* --- Tối ưu hóa responsive cho Mobile --- */
+        @media (max-width: 900px) {
+            .grid-3-cols {
+                display: flex;
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                gap: 15px;
+                padding-bottom: 8px;
+                scrollbar-width: none; /* Ẩn thanh cuộn Firefox */
+            }
+            .grid-3-cols::-webkit-scrollbar {
+                display: none; /* Ẩn thanh cuộn Chrome/Safari */
+            }
+            .grid-3-cols .card {
+                min-width: 280px;
+                flex: 0 0 auto;
+                scroll-snap-align: start;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 14px;
+            }
+            .banner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2>🌡️ Giám Sát Nhiệt Độ & Độ Ẩm ESP8266</h2>
-        <p>Nhiệt độ: <span id="temp">--</span> °C</p>
-        <p>Độ ẩm: <span id="humi">--</span> %</p>
-        
-        <!-- Khung cảnh báo và Nút tắt còi -->
-        <div id="alertBox" class="alert">
-            <h3>⚠️ CẢNH BÁO: QUÁ NHIỆT!</h3>
-            <p>Nhiệt độ đã vượt ngưỡng cho phép!</p>
-            <button onclick="muteAlarm()">🔇 Tắt còi / Dừng báo động</button>
+    <div class="container">
+        <!-- Header -->
+        <div class="top-header">
+            <h2>IoT Control Hub</h2>
+            <div class="user-badge">
+                <i class="fa-solid fa-user-circle"></i> Nguyen Quoc Truong Lam
+            </div>
+        </div>
+
+        <!-- Banner thông báo -->
+        <div class="banner">
+            <div class="banner-left">
+                <i class="fa-solid fa-network-wired"></i>
+                <div>
+                    <strong>Hệ thống giám sát và điều khiển MQTT</strong>
+                    <div style="font-size: 12px; color: var(--text-sub);">Đồng bộ trạng thái thời gian thực qua WebSockets.</div>
+                </div>
+            </div>
+            <span style="font-size: 12px; color: var(--success-color); font-weight: 600;">
+                <i class="fa-solid fa-circle" style="font-size: 7px;"></i> Hoạt động tốt
+            </span>
+        </div>
+
+        <!-- 3 Cột thông tin (Trượt ngang mượt mà trên mobile) -->
+        <div class="grid-3-cols">
+            <!-- Cột 1: Thông tin ESP -->
+            <div class="card">
+                <div class="card-title"><i class="fa-solid fa-microchip" style="color: #3b82f6;"></i> Thiết Bị ESP</div>
+                <div class="info-row">
+                    <span class="info-label">Model:</span>
+                    <span class="info-value">ESP8266 NodeMCU</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cảm biến:</span>
+                    <span class="info-value">DHT11 (Temp/Humi)</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cảnh báo:</span>
+                    <span class="info-value">Còi hú chân D5</span>
+                </div>
+            </div>
+
+            <!-- Cột 2: Host MQTT -->
+            <div class="card">
+                <div class="card-title"><i class="fa-solid fa-server" style="color: #8b5cf6;"></i> Host MQTT Broker</div>
+                <div class="info-row">
+                    <span class="info-label">Broker:</span>
+                    <span class="info-value">broker.emqx.io</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">TCP Port:</span>
+                    <span class="info-value">1883</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">WSS Port:</span>
+                    <span class="info-value">8084</span>
+                </div>
+            </div>
+
+            <!-- Cột 3: Thành viên -->
+            <div class="card">
+                <div class="card-title"><i class="fa-solid fa-users" style="color: #ec4899;"></i> Thành Viên</div>
+                <div class="info-row">
+                    <span class="info-label">Họ và tên:</span>
+                    <span class="info-value">Truong Lam</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Nhóm:</span>
+                    <span class="info-value">i40 / Class 01</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Nền tảng:</span>
+                    <span class="info-value">Web MQTT Dashboard</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danh sách Project -->
+        <div class="section-heading">Danh Sách Dự Án</div>
+        <div class="projects-grid">
+            <!-- Project 1: Nhiệt độ -->
+            <a href="temperature.html" class="project-card">
+                <div>
+                    <div class="project-icon">🌡️</div>
+                    <div class="project-title">Giám Sát Nhiệt Độ & Độ Ẩm</div>
+                    <p class="project-desc">Đọc dữ liệu DHT11 trực tiếp từ ESP8266, hiển thị thời gian thực và kích hoạt cảnh báo còi hú từ xa qua MQTT.</p>
+                </div>
+                <div class="project-link">Truy cập Dashboard &rarr;</div>
+            </a>
+
+            <!-- Project 2: Âm nhạc -->
+            <a href="music.html" class="project-card">
+                <div>
+                    <div class="project-icon">🎵</div>
+                    <div class="project-title">Hệ Thống Âm Nhạc & Media</div>
+                    <p class="project-desc">Giao diện điều khiển phát âm thanh, quản lý giai điệu và tương tác thiết bị phát media qua mạng MQTT.</p>
+                </div>
+                <div class="project-link">Truy cập Dashboard &rarr;</div>
+            </a>
         </div>
     </div>
 
-    <script>
-        // Kết nối MQTT Broker công khai
-        const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-
-        const TOPIC_TEMP  = "i40/class01/sensor/temp";
-        const TOPIC_HUMI  = "i40/class01/sensor/humi";
-        const TOPIC_ALERT = "i40/class01/sensor/alert";
-
-        let audioCtx = null;
-        let alarmInterval = null;
-        let isMutedManually = false; // Biến kiểm tra xem người dùng có chủ động tắt còi không
-
-        client.on('connect', function () {
-            console.log("Đã kết nối MQTT Broker thành công!");
-            client.subscribe(TOPIC_TEMP);
-            client.subscribe(TOPIC_HUMI);
-            client.subscribe(TOPIC_ALERT);
-        });
-
-        client.on('message', function (topic, message) {
-            let msgStr = message.toString();
-            
-            if (topic === TOPIC_TEMP) {
-                document.getElementById('temp').innerText = msgStr;
-            } else if (topic === TOPIC_HUMI) {
-                document.getElementById('humi').innerText = msgStr;
-            } else if (topic === TOPIC_ALERT) {
-                let alertBox = document.getElementById('alertBox');
-                
-                if (msgStr.includes("high temperature!")) {
-                    alertBox.style.display = "block";
-                    
-                    // Nếu người dùng chưa bấm nút tắt còi thủ công thì mới phát âm thanh
-                    if (!isMutedManually) {
-                        startBeepSound();
-                    }
-                } else if (msgStr === "normal" || msgStr === "sensor online") {
-                    alertBox.style.display = "none";
-                    stopBeepSound();
-                    isMutedManually = false; // Reset lại trạng thái khi nhiệt độ đã bình thường
-                }
-            }
-        });
-
-        // Hàm phát âm thanh bíp liên tục trên web
-        function startBeepSound() {
-            if (alarmInterval) return; // Đang kêu thì thôi
-            
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-
-            // Tạo tiếng bíp lặp lại mỗi 1 giây
-            alarmInterval = setInterval(() => {
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                
-                osc.type = 'sine';
-                osc.frequency.value = 800; // Tần số âm thanh bíp
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                
-                let now = audioCtx.currentTime;
-                osc.start(now);
-                gain.gain.setValueAtTime(1, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4); // Kêu trong 0.4 giây
-                osc.stop(now + 0.4);
-            }, 1000);
-        }
-
-        // Hàm tắt âm thanh báo động
-        function stopBeepSound() {
-            if (alarmInterval) {
-                clearInterval(alarmInterval);
-                alarmInterval = null;
-            }
-        }
-
-        // Khi người dùng bấm nút "Tắt còi" trên giao diện
-        function muteAlarm() {
-            stopBeepSound();             // Dừng tiếng kêu trên web ngay lập tức
-            isMutedManually = true;      // Đánh dấu là đã tắt thủ công để nó không tự kêu lại chừng nào chưa về normal
-            alert("Đã tắt âm thanh cảnh báo trên trình duyệt!");
-        }
-    </script>
 </body>
 </html>
