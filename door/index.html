@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ESP8266 MQTT Auto Door Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-sidebar: #111827;
+      --card-bg: #1f2937;
+      --border-color: #374151;
+      --accent-green: #10b981;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; min-height: 100vh; color: var(--text-main); background: var(--bg-main); font-family: 'Plus Jakarta Sans', sans-serif; }
+    .dashboard-shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; max-width: 1600px; margin: 0 auto; }
+    .sidebar { background: var(--bg-sidebar); border-right: 1px solid var(--border-color); }
+    .nav-item { transition: all .2s ease; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; font-size: 14px; text-decoration: none; }
+    .nav-item:hover, .nav-item.active { color: var(--text-main); background: rgba(255, 255, 255, 0.05); }
+    .nav-item.active { font-weight: 600; border-left: 3px solid var(--accent-green); }
+    .panel { background: var(--card-bg); border: 1px solid var(--border-color); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
+    .modal-backdrop { background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(5px); }
+
+    /* Công tắc khóa cửa */
+    .switch { position: relative; width: 56px; height: 30px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #374151; border-radius: 999px; cursor: pointer; transition: .25s; }
+    .slider:before { content: ""; position: absolute; width: 22px; height: 22px; left: 4px; top: 4px; background: #fff; border-radius: 50%; transition: .25s; }
+    .switch input:checked + .slider { background: #ef4444; }
+    .switch input:checked + .slider:before { transform: translateX(26px); }
+    .door-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    @media (max-width: 900px) {
+      .dashboard-shell { display: flex; flex-direction: column; min-height: 100vh; }
+      .sidebar { position: sticky; top: 0; z-index: 40; border-right: 0; border-bottom: 1px solid var(--border-color); padding: 10px 12px !important; background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(8px); }
+      .sidebar > div:first-child { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
+      .sidebar .flex.items-center.gap-3 { margin-bottom: 0 !important; gap: 8px !important; }
+      .sidebar .w-9 { width: 32px !important; height: 32px !important; font-size: 14px !important; }
+      .sidebar-nav { display: flex; gap: 6px; overflow-x: auto; width: 100%; padding-bottom: 2px; scrollbar-width: none; }
+      .sidebar-nav::-webkit-scrollbar { display: none; }
+      .sidebar-nav .nav-item { white-space: nowrap; border-left: none !important; border-radius: 8px; padding: 6px 10px !important; font-size: 12px; gap: 6px; }
+      .sidebar-nav .hide-on-mobile-qr { display: none !important; }
+      .sidebar > div:nth-child(2) { display: none; }
+    }
+    @media (max-width: 640px) {
+      .main-content { padding: 12px !important; }
+      header { margin-bottom: 12px !important; }
+      header h1 { font-size: 1.15rem !important; line-height: 1.25; }
+      header p { font-size: 10px !important; margin-top: 2px; }
+      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; margin-bottom: 12px !important; }
+      .metrics-grid .panel { padding: 10px !important; border-radius: 14px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar p-5 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-4 md:mb-8">
+          <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-lg md:text-xl font-bold shrink-0">🚪</div>
+          <div>
+            <div class="font-bold tracking-tight text-sm md:text-base">CHANGLIN</div>
+            <div class="text-[9px] md:text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-semibold">Auto Door</div>
+          </div>
+        </div>
+        <nav class="sidebar-nav space-y-1.5">
+          <a class="nav-item" href="../index.html"><span>⌂</span> Trang Chủ</a>
+          <a class="nav-item active" href="#dashboard"><span>🚪</span> Cửa Tự Động</a>
+          <a class="nav-item" href="#activity"><span>◷</span> Nhật ký hoạt động</a>
+          <a class="nav-item text-amber-400 font-semibold hide-on-mobile-qr" onclick="toggleQRModal(true)"><span>⊡</span> Mã QR Truy Cập</a>
+        </nav>
+      </div>
+      <div class="hidden md:block rounded-2xl p-4 bg-gray-900/50 border border-gray-800">
+        <div class="text-[11px] text-[var(--text-muted)] mb-1">Door Node</div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-amber-400"><span id="sidebarNodeDot" class="w-2 h-2 rounded-full bg-red-500"></span> <span id="sidebarNodeStatus">Đang ngoại tuyến</span></div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content p-4 md:p-8 overflow-y-auto" id="dashboard">
+      <header class="flex flex-wrap items-center justify-between gap-3 mb-4 md:mb-5">
+        <div>
+          <h1 class="text-xl md:text-3xl font-bold tracking-tight">Cửa Tự Động Thông Minh</h1>
+          <p class="text-xs text-[var(--text-muted)] mt-0.5">Cảm biến siêu âm phát hiện người, servo mở cửa, điều khiển từ xa qua EMQX Broker.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="toggleQRModal(true)" class="md:hidden bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5"><span>⊡</span> QR Code</button>
+          <div class="flex items-center gap-2 rounded-full bg-[var(--card-bg)] border border-[var(--border-color)] px-3 py-1.5 text-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+            <span id="connectionStatus" class="text-gray-300 font-medium truncate">Đang kết nối Broker...</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- METRICS -->
+      <section class="metrics-grid grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
+        <!-- Khoảng cách -->
+        <div class="panel rounded-2xl p-3.5 md:p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
+            <span>Khoảng cách (Text)</span><span class="text-amber-400 text-base md:text-lg">📏</span>
+          </div>
+          <div class="mt-2.5">
+            <div id="distTextVal" class="text-lg md:text-2xl font-bold text-amber-300">-- cm</div>
+            <div class="text-[10px] md:text-[11px] text-[var(--text-muted)] mt-0.5">i40/class01/door/dist</div>
+          </div>
+        </div>
+
+        <!-- Trạng thái cửa -->
+        <div class="panel rounded-2xl p-3.5 md:p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
+            <span>Trạng thái cửa</span>
+            <span class="flex items-center gap-1.5">
+              <span id="ledG" class="w-2.5 h-2.5 rounded-full bg-gray-700" title="Đèn xanh: cửa mở"></span>
+              <span id="ledR" class="w-2.5 h-2.5 rounded-full bg-gray-700" title="Đèn đỏ: cửa đóng/khóa"></span>
+            </span>
+          </div>
+          <div class="mt-2.5">
+            <div id="doorStateVal" class="text-lg md:text-2xl font-bold text-gray-400">--</div>
+            <div id="doorStatusRaw" class="text-[10px] md:text-[11px] text-[var(--text-muted)] mt-0.5 truncate">i40/class01/door/status</div>
+          </div>
+        </div>
+
+        <!-- Trạng thái Node -->
+        <div class="panel rounded-2xl p-3.5 md:p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
+            <span>Trạng thái Node</span><span class="text-purple-400 text-base md:text-lg">⚡</span>
+          </div>
+          <div class="mt-2.5">
+            <div id="nodeStatusVal" class="text-xs md:text-sm font-bold text-gray-400">Ngoại tuyến</div>
+            <div class="text-[10px] md:text-[11px] text-[var(--text-muted)] mt-0.5">Online / Offline</div>
+          </div>
+        </div>
+
+        <!-- Khóa -->
+        <div class="panel rounded-2xl p-3.5 md:p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
+            <span>Chế độ khóa</span><span id="lockIcon" class="text-base md:text-lg">🔓</span>
+          </div>
+          <div class="mt-2.5">
+            <div id="lockStateVal" class="text-xs md:text-sm font-bold text-emerald-400">Tự động</div>
+            <div class="text-[10px] md:text-[11px] text-[var(--text-muted)] mt-0.5">i40/class01/door/lock</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GAUGE KHOẢNG CÁCH -->
+      <section class="panel rounded-2xl p-4 md:p-5 mb-4">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs md:text-sm font-bold uppercase tracking-wider text-gray-300">Đồng hồ khoảng cách (0 - 100 cm)</h2>
+          <span id="distGaugeNum" class="text-sm font-bold text-amber-400">-- cm</span>
+        </div>
+        <p class="text-[10px] text-[var(--text-muted)] mb-4">Vật cách dưới 25 cm được tính là có người, cửa sẽ tự mở. Vạch trắng đánh dấu mốc 25 cm.</p>
+        <div class="relative">
+          <div class="w-full bg-gray-800 rounded-full h-5 overflow-hidden p-0.5 border border-gray-700">
+            <div id="distProgressBar" class="bg-emerald-500 h-full rounded-full transition-all duration-150" style="width: 0%"></div>
+          </div>
+          <div class="absolute top-0 h-5 w-0.5 bg-white/70" style="left: 25%"></div>
+        </div>
+        <div class="relative h-4 text-[10px] text-[var(--text-muted)] mt-2">
+          <span class="absolute left-0">0 (Min)</span>
+          <span class="absolute -translate-x-1/2" style="left: 25%">25 (Ngưỡng mở cửa)</span>
+          <span class="absolute right-0">100 (Max)</span>
+        </div>
+      </section>
+
+      <!-- ĐIỀU KHIỂN -->
+      <section class="panel rounded-2xl p-4 md:p-5 mb-4">
+        <h2 class="text-xs md:text-sm font-bold uppercase tracking-wider text-gray-300 mb-3">Điều khiển từ xa</h2>
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="btnOpen" onclick="sendCmd('open')" class="door-btn rounded-xl px-5 py-2.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold hover:bg-emerald-500/20 flex items-center gap-2"><span>🔓</span> Mở cửa</button>
+          <button id="btnClose" onclick="sendCmd('close')" class="door-btn rounded-xl px-5 py-2.5 bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-bold hover:bg-red-500/20 flex items-center gap-2"><span>🔒</span> Đóng cửa</button>
+          <div class="flex items-center gap-3 ml-auto">
+            <div class="text-right">
+              <div class="text-xs font-bold text-gray-300">Khóa cửa từ xa</div>
+              <div class="text-[10px] text-[var(--text-muted)]">Bật = khóa, nút mở/đóng bị vô hiệu</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="lockSwitch" onchange="sendLock(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+        <p class="text-[10px] text-[var(--text-muted)] mt-3">Lệnh mở/đóng gửi <code class="text-amber-400 font-mono">open</code> / <code class="text-amber-400 font-mono">close</code> lên <code class="text-amber-400 font-mono">i40/class01/door/cmd</code>; khóa gửi <code class="text-amber-400 font-mono">1</code> / <code class="text-amber-400 font-mono">0</code> lên <code class="text-amber-400 font-mono">i40/class01/door/lock</code>.</p>
+      </section>
+
+      <!-- ACTIVITY LOG -->
+      <section id="activity" class="panel rounded-2xl p-4 md:p-5">
+        <div class="flex items-center justify-between mb-2.5">
+          <h2 class="text-xs md:text-sm font-bold uppercase tracking-wider text-gray-300">Door System Log</h2>
+          <span class="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">Live Monitor</span>
+        </div>
+        <div class="bg-black/40 border border-gray-800 rounded-xl p-3 font-mono text-[11px] text-gray-400 h-24 overflow-y-auto" id="logBox">
+          <div>[System] Đã sẵn sàng nhận dữ liệu cửa tự động...</div>
+        </div>
+      </section>
+
+      <footer class="text-center text-[10px] text-[var(--text-muted)] mt-5">ESP8266 Auto Door Dashboard · Powered by Changlin</footer>
+    </main>
+  </div>
+
+  <!-- QR CODE POPUP MODAL -->
+  <div id="qrModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="panel rounded-3xl p-6 max-w-sm w-full text-center relative border border-gray-700 shadow-2xl bg-[#111827]">
+      <button onclick="toggleQRModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-white bg-gray-800 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">✕</button>
+      <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-xl font-bold mx-auto mb-3">⊡</div>
+      <h3 class="text-base font-bold text-white">Quét mã QR truy cập</h3>
+      <p class="text-xs text-[var(--text-muted)] mt-1">Dùng điện thoại quét để mở dashboard cửa tự động.</p>
+      <div class="bg-white p-3 rounded-2xl inline-block my-4 shadow-inner">
+        <img id="qrImage" src="" alt="QR Code" class="w-48 h-48 mx-auto object-contain">
+      </div>
+      <div class="bg-black/30 border border-gray-800 rounded-xl p-2.5 text-xs text-amber-300 font-mono truncate select-all mb-4">https://esp.nguyenlamblog.workers.dev/door/</div>
+      <button onclick="toggleQRModal(false)" class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all">Đóng cửa sổ</button>
+    </div>
+  </div>
+
+  <!-- SCRIPT MQTT & LOGIC -->
+  <script>
+    const brokerUrl = 'wss://broker.emqx.io:8084/mqtt';
+    const client = mqtt.connect(brokerUrl, { clientId: 'ChanglinDoor_' + Math.random().toString(16).substr(2, 8), clean: true });
+
+    const TOPIC_DIST = 'i40/class01/door/dist';
+    const TOPIC_STATUS = 'i40/class01/door/status';
+    const TOPIC_CMD = 'i40/class01/door/cmd';
+    const TOPIC_LOCK = 'i40/class01/door/lock';
+    const TARGET_URL = 'https://esp.nguyenlamblog.workers.dev/door/';
+    const OFFLINE_AFTER_MS = 3000;   // ESP gửi khoảng cách khoảng 3 lần/giây
+    const OPEN_CM = 25, MAX_CM = 100;
+    let lastData = 0, nodeOnline = false, locked = false, doorState = null;
+
+    const $ = (id) => document.getElementById(id);
+    const connectionStatusEl = $('connectionStatus'), distTextVal = $('distTextVal'), distGaugeNum = $('distGaugeNum'),
+          distBar = $('distProgressBar'), doorStateVal = $('doorStateVal'), doorStatusRaw = $('doorStatusRaw'),
+          ledG = $('ledG'), ledR = $('ledR'), nodeStatusVal = $('nodeStatusVal'), sidebarNodeStatus = $('sidebarNodeStatus'),
+          sidebarNodeDot = $('sidebarNodeDot'), lockSwitch = $('lockSwitch'), lockStateVal = $('lockStateVal'),
+          lockIcon = $('lockIcon'), btnOpen = $('btnOpen'), btnClose = $('btnClose'), logBox = $('logBox'), qrModal = $('qrModal');
+
+    $('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(TARGET_URL)}`;
+    function toggleQRModal(show) { qrModal.classList.toggle('hidden', !show); }
+    qrModal.addEventListener('click', (e) => { if (e.target === qrModal) toggleQRModal(false); });
+
+    function addLog(text) {
+      logBox.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${text}</div>`;
+      while (logBox.children.length > 100) logBox.removeChild(logBox.firstChild);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    // ----- Online / Offline -----
+    function setNodeOnline(on) {
+      if (on) {
+        nodeStatusVal.innerText = 'Đang trực tuyến (Online)';
+        nodeStatusVal.className = 'text-xs md:text-sm font-bold text-emerald-400';
+        sidebarNodeStatus.innerText = 'Online Live';
+        sidebarNodeDot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+      } else {
+        nodeStatusVal.innerText = 'Ngoại tuyến';
+        nodeStatusVal.className = 'text-xs md:text-sm font-bold text-gray-400';
+        sidebarNodeStatus.innerText = 'Đang ngoại tuyến';
+        sidebarNodeDot.className = 'w-2 h-2 rounded-full bg-red-500';
+        if (nodeOnline) addLog('Mất tín hiệu cửa tự động (quá 3 giây không có dữ liệu).');
+      }
+      nodeOnline = on;
+    }
+    setInterval(() => { if (nodeOnline && Date.now() - lastData > OFFLINE_AFTER_MS) setNodeOnline(false); }, 1000);
+
+    // ----- Khoảng cách -----
+    function updateDistance(cm) {
+      const far = cm >= 900;                  // ESP trả 999 khi không đo được
+      const label = far ? 'Ngoài tầm' : cm.toFixed(1) + ' cm';
+      distTextVal.innerText = label;
+      distGaugeNum.innerText = label;
+      distBar.style.width = Math.max(0, Math.min(100, cm / MAX_CM * 100)) + '%';
+      distBar.className = (cm > 2 && cm < OPEN_CM ? 'bg-amber-400' : 'bg-emerald-500') + ' h-full rounded-full transition-all duration-150';
+    }
+
+    // ----- Trạng thái cửa (ESP gửi chữ Trung) -----
+    const STATUS_MAP = {
+      '門已開啟': { vi: 'Cửa đã mở',            state: 'open' },
+      '門已關閉': { vi: 'Cửa đã đóng',          state: 'closed' },
+      '遠端關門': { vi: 'Đã đóng cửa từ xa',     state: 'closed' },
+      '已鎖定':   { vi: 'Đã khóa cửa',          state: 'locked' },
+      'door online': { vi: 'Thiết bị cửa đã online', state: null }
+    };
+    function setDoorState(state) {
+      doorState = state;
+      const on = 'w-2.5 h-2.5 rounded-full ', off = 'bg-gray-700';
+      if (state === 'open') {
+        doorStateVal.innerText = 'Đang mở';  doorStateVal.className = 'text-lg md:text-2xl font-bold text-emerald-400';
+        ledG.className = on + 'bg-emerald-400'; ledR.className = on + off;
+      } else if (state === 'closed') {
+        doorStateVal.innerText = 'Đang đóng'; doorStateVal.className = 'text-lg md:text-2xl font-bold text-red-400';
+        ledG.className = on + off; ledR.className = on + 'bg-red-500';
+      } else if (state === 'locked') {
+        doorStateVal.innerText = 'Đã khóa 🔒'; doorStateVal.className = 'text-lg md:text-2xl font-bold text-red-400';
+        ledG.className = on + off; ledR.className = on + 'bg-red-500';
+      }
+    }
+
+    // ----- Khóa cửa -----
+    function showLockState(isLocked) {
+      locked = isLocked;
+      lockSwitch.checked = isLocked;
+      lockStateVal.innerText = isLocked ? 'Đã khóa' : 'Tự động';
+      lockStateVal.className = 'text-xs md:text-sm font-bold ' + (isLocked ? 'text-red-400' : 'text-emerald-400');
+      lockIcon.innerText = isLocked ? '🔒' : '🔓';
+      btnOpen.disabled = isLocked; btnClose.disabled = isLocked;
+      if (!isLocked && doorState === 'locked') setDoorState('closed');   // mở khóa: cửa vẫn đóng, quay về chế độ tự động
+    }
+    function sendLock(isLocked) {
+      if (!client.connected) { addLog('Chưa kết nối MQTT để gửi lệnh!'); showLockState(!isLocked); return; }
+      // retain: ESP khởi động lại vẫn biết cửa đang bị khóa, công tắc trên web luôn khớp
+      client.publish(TOPIC_LOCK, isLocked ? '1' : '0', { retain: true }, (err) => {
+        if (!err) addLog(`Đã gửi [${isLocked ? 1 : 0}] lên topic [${TOPIC_LOCK}]`);
+      });
+      showLockState(isLocked);
+    }
+
+    // ----- Lệnh mở / đóng (không retain để ESP không tự mở lại khi khởi động) -----
+    function sendCmd(cmd) {
+      if (locked) { addLog('Cửa đang khóa, ESP sẽ bỏ qua lệnh. Hãy tắt khóa trước.'); return; }
+      if (!client.connected) { addLog('Chưa kết nối MQTT để gửi lệnh!'); return; }
+      client.publish(TOPIC_CMD, cmd, {}, (err) => {
+        if (!err) addLog(`Đã gửi lệnh [${cmd}] lên topic [${TOPIC_CMD}]`);
+      });
+    }
+
+    client.on('connect', () => {
+      connectionStatusEl.innerText = 'Connected ✅';
+      addLog('Đã kết nối thành công tới EMQX Broker!');
+      client.subscribe([TOPIC_DIST, TOPIC_STATUS, TOPIC_LOCK], (err) => {
+        if (!err) addLog('Đã subscribe các topic cửa tự động');
+      });
+    });
+    client.on('error', (err) => { connectionStatusEl.innerText = 'Error ❌'; addLog('Lỗi kết nối MQTT: ' + err.message); });
+
+    client.on('message', (topic, payload) => {
+      const msg = payload.toString().trim();
+      if (topic === TOPIC_DIST) {
+        const cm = parseFloat(msg);
+        if (isNaN(cm)) return;
+        lastData = Date.now();
+        if (!nodeOnline) setNodeOnline(true);
+        updateDistance(cm);                       // không ghi log mỗi lần vì dữ liệu về liên tục
+      } else if (topic === TOPIC_STATUS) {
+        const s = STATUS_MAP[msg];
+        doorStatusRaw.innerText = s ? `${msg} · ${s.vi}` : msg;
+        if (s && s.state) setDoorState(s.state);
+        addLog(s ? `Trạng thái cửa: ${msg} (${s.vi})` : `Nhận tin trạng thái: ${msg}`);
+      } else if (topic === TOPIC_LOCK) {
+        showLockState(msg === '1' || msg === 'on');   // đồng bộ khi thiết bị khác đổi
+      }
+    });
+  </script>
+</body>
+</html>
